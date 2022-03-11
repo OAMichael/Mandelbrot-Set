@@ -14,10 +14,15 @@
 #define KEY_ESCAPE 27
 #define KEY_SPACE  32
 
+//#define TRIANGLE_
+#define SET_
+
 namespace MSet {
 
-    int init_wWidth =  600;
-    int init_wHeight = 600;
+    int init_wWidth =  500;
+    int init_wHeight = 500;
+    int num_of_pixels = init_wWidth * init_wHeight;
+    int ex_num_of_pixels = 6 * (init_wWidth + 10) * (init_wHeight + 10);
     int curr_wWidth =  init_wWidth;
     int curr_wHeight = init_wHeight;
 
@@ -34,11 +39,19 @@ namespace MSet {
 
 
     unsigned int VBO, VAO;
+
+#ifdef SET_
+    float* Vertices = new float[ex_num_of_pixels];
+#endif
+
+#ifdef TRIANGLE_
+    float r = 0, g = 0.3, b = 0.6;
     float Vertices[] = {
         0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  // bottom left
+        -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f, // bottom left
         0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f   // top 
-    };
+    }; 
+#endif
 
     auto func = [] (std::complex<double>z, std::complex<double> c) -> std::complex<double> { return pow(z, Degree) + c; };
     int Escape(std::complex<double>& c, const int& iter_max, const std::function<std::complex<double>(std::complex<double>,
@@ -119,7 +132,7 @@ namespace MSet {
         glBindVertexArray(VAO);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ex_num_of_pixels, Vertices, GL_DYNAMIC_DRAW);
 
         // position attribute
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
@@ -129,7 +142,7 @@ namespace MSet {
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
         glEnableVertexAttribArray(1);
 
-        //glUseProgram(shaderProgram);
+        glUseProgram(shaderProgram);
  
     } 
 
@@ -137,7 +150,8 @@ namespace MSet {
         Frame_Flag = true;
         switch(Typped) {
             case 'q':
-            case KEY_ESCAPE:        exit(0);
+            case KEY_ESCAPE:        delete[] Vertices;
+                                    exit(0);
 
             case KEY_SPACE:         iter_max += 10;
                                     iter_max %= 50;
@@ -190,76 +204,114 @@ namespace MSet {
 
     void display(void) {
 
+#ifdef SET_
         if(Frame_Flag == true) {
 
-            curr_wWidth  = glutGet(GLUT_WINDOW_WIDTH);
-            curr_wHeight = glutGet(GLUT_WINDOW_HEIGHT);
+            //curr_wWidth  = glutGet(GLUT_WINDOW_WIDTH);
+            //curr_wHeight = glutGet(GLUT_WINDOW_HEIGHT);
 
             std::cout << "Drawing" << std::endl;
             Frame_Flag = false;
             glClear(GL_COLOR_BUFFER_BIT);
             glClearColor(1, 1, 1, 1); 
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
-
-            glPushMatrix();
-
-            glTranslatef(hShift, vShift, 0);
-            glScalef(Scale, Scale, Scale);
 
             x_range[0] = (-1 - hShift) / Scale;
             x_range[1] = ( 1 - hShift) / Scale;
-            x_inc = 2 / Scale / curr_wWidth;
+            x_inc = 2 / Scale / init_wWidth;
 
-            std::cout << x_range[0] << ' ' << x_range[1] << std::endl;
+            std::cout << "x: " << x_range[0] << " : " << x_range[1] << ". Points:" << (x_range[1] - x_range[0]) / x_inc << std::endl;
 
             y_range[0] = (-1 - vShift) / Scale;
             y_range[1] = ( 1 - vShift) / Scale;
-            y_inc = 2 / Scale / curr_wHeight;
+            y_inc = 2 / Scale / init_wHeight;
 
-            glBegin(GL_POINTS);
+            std::cout << "y: " << y_range[0] << " : " << y_range[1] << ". Points:" << (y_range[1] - y_range[0]) / x_inc << std::endl;
 
-                for(double i = x_range[0]; i < x_range[1]; i += x_inc)
-                    for(double j = y_range[0]; j < y_range[1]; j += y_inc) {
-                        std::complex<double> c{i, j};
-                        int iters = Escape(c, iter_max, func);
 
-                        GLdouble t = static_cast<GLdouble>(iters) / static_cast<GLdouble>(iter_max);  
-                        glColor3f(9 * (1-t) * t*t*t, 15 * (1-t)*(1-t) * t*t, 8.5 * (1-t)*(1-t)*(1-t) * t);
-                        glVertex2f(i, j);
-                    }
-            glEnd();
+            int k = 0;
 
-            glPopMatrix();
 
-            glutSwapBuffers();
-        }
-/*       else {
-            glClear(GL_COLOR_BUFFER_BIT);
-            glClearColor(0, 0, 0, 1); 
-            
-            //glMatrixMode(GL_PROJECTION);
-            //glLoadIdentity();
+            for(double i = x_range[0]; i < x_range[1]; i += x_inc)
+                for(double j = y_range[0]; j < y_range[1]; j += y_inc) {
+                    std::complex<double> c{i, j};
+                    int iters = Escape(c, iter_max, func);
 
-            //glPushMatrix();
-            // create transformations
+                    GLdouble t = static_cast<GLfloat>(iters) / static_cast<GLfloat>(iter_max);
+                    Vertices[6 * k] = i;
+                    Vertices[6 * k + 1] = j;
+                    Vertices[6 * k + 2] = 0;
+                    Vertices[6 * k + 3] = 9 * (1-t) * t*t*t;
+                    Vertices[6 * k + 4] = 15 * (1-t)*(1-t) * t*t;
+                    Vertices[6 * k + 5] = 8.5 * (1-t)*(1-t)*(1-t) * t;  
+
+                        ++k;
+                }
+
             glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
             transform = glm::translate(transform, glm::vec3(hShift, vShift, 0.0f));
             transform = glm::scale(transform, glm::vec3(Scale, Scale, 1));
 
-            glUseProgram(shaderProgram);
             unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
             glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
 
+            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ex_num_of_pixels, Vertices, GL_DYNAMIC_DRAW);
 
             glBindVertexArray(VAO);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
-
-            //glPopMatrix();
+            glDrawArrays(GL_POINTS, 0, num_of_pixels);
 
             glutSwapBuffers();
         }
-*/
+#endif
+
+#ifdef TRIANGLE_
+
+        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0, 0, 0, 1); 
+       
+        // create transformations
+        glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+        transform = glm::translate(transform, glm::vec3(hShift, vShift, 0.0f));
+        transform = glm::scale(transform, glm::vec3(Scale, Scale, 1));
+
+        unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+
+        r += 0.01;
+        g += 0.01;
+        b += 0.01;
+
+        if(r >= 1)
+            r = 0;
+
+        if(g >= 1)
+            g = 0;
+        
+        if(b >= 1)
+            b = 0;
+
+        Vertices[3] = r;
+        Vertices[4] = g;
+        Vertices[5] = b;
+
+        Vertices[9] = g;
+        Vertices[10] = b;
+        Vertices[11] = r;
+
+        Vertices[15] = b;
+        Vertices[16] = r;
+        Vertices[17] = g;
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_DYNAMIC_DRAW);
+
+        // position attribute
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        glutSwapBuffers();
+
+#endif
     
         return;
     }
