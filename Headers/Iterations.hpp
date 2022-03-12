@@ -6,7 +6,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <cstdlib>
-#include <complex>
 #include <iostream>
 #include <functional>
 
@@ -22,7 +21,6 @@ namespace MSet {
     int init_wWidth =  500;
     int init_wHeight = 500;
     int num_of_pixels = init_wWidth * init_wHeight;
-    int ex_num_of_pixels = 6 * (init_wWidth + 10) * (init_wHeight + 10);
     int curr_wWidth =  init_wWidth;
     int curr_wHeight = init_wHeight;
 
@@ -41,7 +39,7 @@ namespace MSet {
     unsigned int VBO, VAO;
 
 #ifdef SET_
-    float* Vertices = new float[ex_num_of_pixels];
+    float Vertices2[500 * 500 * 4];
 #endif
 
 #ifdef TRIANGLE_
@@ -53,31 +51,54 @@ namespace MSet {
     }; 
 #endif
 
-    auto func = [] (std::complex<double>z, std::complex<double> c) -> std::complex<double> { return pow(z, Degree) + c; };
-    int Escape(std::complex<double>& c, const int& iter_max, const std::function<std::complex<double>(std::complex<double>,
-               std::complex<double>)>& func);
     bool Frame_Flag = true;
 
     unsigned int shaderProgram{0};
-    const char* VertexShaderSource ="#version 330 core\n"
-                                    "layout (location = 0) in vec3 aPos;\n"
-                                    "layout (location = 1) in vec3 aColor;\n"
-                                    "out vec3 ourColor;\n"
-                                    "uniform mat4 transform;\n"
-                                    "void main()\n"
-                                    "{\n"
-                                    "   gl_Position = transform * vec4(aPos, 1.0);\n"
-                                    "   ourColor = aColor;\n"
-                                    "}\n\0";
+
+    const char* VertexShaderSource =    "#version 330 core\n"
+                                        "layout (location = 0) in vec3 vPosition;\n"
+                                        "uniform mat4 transform;\n"
+                                        "out vec4 MainColor;\n"
+
+                                        "void main() {\n"
+                                            "gl_Position = vec4(vPosition, 1.0);\n"
+                                            "vec2 p = gl_Position.xy;\n"
+                                            "vec2 c = p;\n"
+                                            "gl_Position = transform * vec4(vPosition, 1.0);\n"
+
+
+                                            //Set default color to HSV value for black
+                                            "vec3 color = vec3(0.0, 0.0, 0.0);\n"
+
+
+                                            //Max number of iterations will arbitrarily be defined as 100. Finer detail with more computation will be found for larger values.
+                                            "for(int i = 0; i < 500; i++) {\n"
+                                                //Perform complex number arithmetic
+                                                "p = vec2(p.x * p.x - p.y * p.y, 2.0 * p.x * p.y) + c;\n"
+                                                
+                                                "if (dot(p, p) > 4.0) {\n"
+                                                    //The point, c, is not part of the set, so smoothly color it. colorRegulator increases linearly by 1 for every extra step it takes to break free.
+                                                    "float colorRegulator = float(i-1)-log(((log(dot(p,p)))/log(2.0)))/log(2.0);\n"
+                                                    
+                                                    //This is a coloring algorithm I found to be appealing. Written in HSV, many functions will work.
+                                                    "color = vec3(0.95 + 0.012 * colorRegulator , 1.0, 0.2 + 0.4 * (1.0 + sin(0.3 * colorRegulator)));\n"
+                                                   
+                                                    "break;\n"
+                                                "}\n"
+                                            "}\n"
+                                            "vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n"
+                                            "vec3 m = abs(fract(color.xxx + K.xyz) * 6.0 - K.www);\n"
+                                            "MainColor.rgb = color.z * mix(K.xxx, clamp(m - K.xxx, 0.0, 1.0), color.y);\n"
+                                            "MainColor.a = 1;\n"
+                                        "};\0";
 
     const char* FragmentShaderSource =  "#version 330 core\n"
+                                        "in vec4 MainColor;\n"
                                         "out vec4 FragColor;\n"
-                                        "in vec3 ourColor;\n"
-                                        "void main()\n"
-                                        "{\n"
-                                        "   FragColor = vec4(ourColor, 1.0f);\n"
-                                        "}\n\0";
 
+                                        "void main() {\n"
+                                            "FragColor = MainColor;\n"
+                                        "}\0";
 
     void initGL() {
 
@@ -132,15 +153,11 @@ namespace MSet {
         glBindVertexArray(VAO);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ex_num_of_pixels, Vertices, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_DYNAMIC_DRAW);
 
         // position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
-        
-        // color attribute
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1);
 
         glUseProgram(shaderProgram);
  
@@ -150,8 +167,7 @@ namespace MSet {
         Frame_Flag = true;
         switch(Typped) {
             case 'q':
-            case KEY_ESCAPE:        delete[] Vertices;
-                                    exit(0);
+            case KEY_ESCAPE:        exit(0);
 
             case KEY_SPACE:         iter_max += 10;
                                     iter_max %= 50;
@@ -227,25 +243,18 @@ namespace MSet {
 
             std::cout << "y: " << y_range[0] << " : " << y_range[1] << ". Points:" << (y_range[1] - y_range[0]) / x_inc << std::endl;
 
-
             int k = 0;
 
+            for(float i = x_range[0]; i < x_range[1]; i += x_inc)
+                for(float j = y_range[0]; j < y_range[1]; j += y_inc) {
 
-            for(double i = x_range[0]; i < x_range[1]; i += x_inc)
-                for(double j = y_range[0]; j < y_range[1]; j += y_inc) {
-                    std::complex<double> c{i, j};
-                    int iters = Escape(c, iter_max, func);
-
-                    GLdouble t = static_cast<GLfloat>(iters) / static_cast<GLfloat>(iter_max);
-                    Vertices[6 * k] = i;
-                    Vertices[6 * k + 1] = j;
-                    Vertices[6 * k + 2] = 0;
-                    Vertices[6 * k + 3] = 9 * (1-t) * t*t*t;
-                    Vertices[6 * k + 4] = 15 * (1-t)*(1-t) * t*t;
-                    Vertices[6 * k + 5] = 8.5 * (1-t)*(1-t)*(1-t) * t;  
-
+                    Vertices2[3 * k] = i;
+                    Vertices2[3 * k + 1] = j;
+                    Vertices2[3 * k + 2] = 0;
                         ++k;
                 }
+
+
 
             glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
             transform = glm::translate(transform, glm::vec3(hShift, vShift, 0.0f));
@@ -255,7 +264,7 @@ namespace MSet {
             glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
 
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ex_num_of_pixels, Vertices, GL_DYNAMIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_DYNAMIC_DRAW);
 
             glBindVertexArray(VAO);
             glDrawArrays(GL_POINTS, 0, num_of_pixels);
@@ -334,19 +343,6 @@ namespace MSet {
         glOrtho(0, wScale, 0, hScale, -1, 1);
 
         return;
-    }
-
-    int Escape(std::complex<double>& c, const int& iter_max, const std::function<std::complex<double>(std::complex<double>,
-        std::complex<double>)>& func) {
-        std::complex<double> z{0};
-        int iter = 0;
-     
-        while (abs(z) < 2.0 && iter < iter_max) {
-            z = func(z, c);
-            ++iter;
-        }
-     
-        return iter;
     }
 
 }
