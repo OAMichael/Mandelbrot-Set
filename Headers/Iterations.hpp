@@ -23,12 +23,12 @@ namespace MSet {
     int num_of_pixels = init_wWidth * init_wHeight;
     int curr_wWidth =  init_wWidth;
     int curr_wHeight = init_wHeight;
+    bool FS_Flag = false;
+
 
     GLdouble Scale = 1;
     GLfloat  hShift = 0.5;
     GLfloat  vShift = 0;
-    GLfloat  Degree = 2;
-    auto iter_max = 50;
 
     GLdouble x_range[2] = {-1.5, 0.5};
     GLdouble x_inc = 0.01;
@@ -39,7 +39,7 @@ namespace MSet {
     unsigned int VBO, VAO;
 
 #ifdef SET_
-    float Vertices2[500 * 500 * 4];
+    float Vertices2[1800 * 1600 * 8];
 #endif
 
 #ifdef TRIANGLE_
@@ -169,22 +169,9 @@ namespace MSet {
             case 'q':
             case KEY_ESCAPE:        exit(0);
 
-            case KEY_SPACE:         iter_max += 10;
-                                    iter_max %= 50;
-                                    ++iter_max;      break;
-
             case KEY_ENTER:         hShift = 0.5;
                                     vShift = 0;
-                                    Scale = 1;
-                                    iter_max = 50;   break;
-
-            case 'a':               Degree -= 0.1;   break;
-
-            case 'd':               Degree += 0.1;   break;
-
-            case 'w':               Degree += 1.0;   break;
-
-            case 's':               Degree -= 1.0;   break;
+                                    Scale = 1;      break;
         }
 
         return;
@@ -194,13 +181,22 @@ namespace MSet {
         Frame_Flag = true;
         switch(key)
         {
-            case GLUT_KEY_UP:       vShift -= 0.1;   break;
+            case GLUT_KEY_UP:       vShift -= 0.07;   break;
 
-            case GLUT_KEY_DOWN:     vShift += 0.1;   break;
+            case GLUT_KEY_DOWN:     vShift += 0.07;   break;
 
-            case GLUT_KEY_LEFT:     hShift += 0.1;   break;
+            case GLUT_KEY_LEFT:     hShift += 0.07;   break;
 
-            case GLUT_KEY_RIGHT:    hShift -= 0.1;   break;
+            case GLUT_KEY_RIGHT:    hShift -= 0.07;   break;
+
+            case GLUT_KEY_F11:      FS_Flag = !FS_Flag;
+                                    if(FS_Flag)
+                                        glutFullScreen();
+                                    else {
+                                        glutReshapeWindow(init_wWidth, init_wHeight);
+                                        glutPositionWindow(400, 50);
+                                    }                 
+                                    break;
         }
 
         return;
@@ -210,9 +206,9 @@ namespace MSet {
         Frame_Flag = true;
         switch(Button)
         {
-            case 3:     Scale *= 1.1;   break; 
+            case 3:     Scale *= 1.02;   break; 
             
-            case 4:     Scale /= 1.1;   break;
+            case 4:     Scale /= 1.02;   break;
         }
 
         return;
@@ -223,23 +219,25 @@ namespace MSet {
 #ifdef SET_
         if(Frame_Flag == true) {
 
-            //curr_wWidth  = glutGet(GLUT_WINDOW_WIDTH);
-            //curr_wHeight = glutGet(GLUT_WINDOW_HEIGHT);
+            curr_wWidth  = glutGet(GLUT_WINDOW_WIDTH);
+            curr_wHeight = glutGet(GLUT_WINDOW_HEIGHT);
+            num_of_pixels = curr_wWidth * curr_wHeight;
 
-            std::cout << "Drawing" << std::endl;
+            std::cout << "Scale = " << Scale << std::endl; 
+            //std::cout << "Drawing" << std::endl;
             Frame_Flag = false;
             glClear(GL_COLOR_BUFFER_BIT);
             glClearColor(1, 1, 1, 1); 
 
             x_range[0] = (-1 - hShift) / Scale;
             x_range[1] = ( 1 - hShift) / Scale;
-            x_inc = 2 / Scale / init_wWidth;
+            x_inc = 2 / Scale / curr_wWidth;
 
             std::cout << "x: " << x_range[0] << " : " << x_range[1] << ". Points:" << (x_range[1] - x_range[0]) / x_inc << std::endl;
 
             y_range[0] = (-1 - vShift) / Scale;
             y_range[1] = ( 1 - vShift) / Scale;
-            y_inc = 2 / Scale / init_wHeight;
+            y_inc = 2 / Scale / curr_wHeight;
 
             std::cout << "y: " << y_range[0] << " : " << y_range[1] << ". Points:" << (y_range[1] - y_range[0]) / x_inc << std::endl;
 

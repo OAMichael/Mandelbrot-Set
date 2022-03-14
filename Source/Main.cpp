@@ -14,13 +14,12 @@ int main(int argc, char* argv[])
 
     initGL();
     glutDisplayFunc(display);
-    glutReshapeFunc(Reshape);
+    //glutReshapeFunc(Reshape);
 
     glutKeyboardFunc(Keyboard);
     glutSpecialFunc(SpecKeyboard);
     glutMouseFunc(Mouse);
 
-    //glutFullScreen();
     glutTimerFunc(1000, Timer, 0);
     glutMainLoop();
 
