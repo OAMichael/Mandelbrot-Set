@@ -21,7 +21,7 @@ cmake ..
 make
 ```
 
-And vuala all you have to do is execute the program:
+And voila, all you have to do is execute the program:
 
 ```console
 ./Main.exe
