@@ -1,27 +1,12 @@
-#include "../Headers/Iterations.hpp"
-
-using namespace MSet;
+#include "../Headers/Fractal.hpp"
 
 int main(int argc, char* argv[])
 {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 
-    glutInitWindowPosition(400, 50);
-    glutInitWindowSize(init_wWidth, init_wHeight);
-     
-    int win = glutCreateWindow("Mandelbrot set");
-
-    initGL();
-    glutDisplayFunc(display);
-    //glutReshapeFunc(Reshape);
-
-    glutKeyboardFunc(Keyboard);
-    glutSpecialFunc(SpecKeyboard);
-    glutMouseFunc(Mouse);
-
-    glutTimerFunc(1000, Timer, 0);
-    glutMainLoop();
+    MSet::Fractal Frac{"Mandelbrot's Set"};
+    Frac.show();
 
     return 0;
 }
