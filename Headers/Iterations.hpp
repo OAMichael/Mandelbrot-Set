@@ -9,6 +9,7 @@
 #include <iostream>
 #include "Shader.hpp"
 
+// All needed defines
 #define KEY_ENTER 13
 #define KEY_ESCAPE 27
 #define KEY_SPACE  32
@@ -25,11 +26,11 @@ namespace MSet {
     static bool FullScreen_Flag = false;
 
 
-    static GLfloat Scale = 1;
+    static GLfloat  Scale = 1;
     static GLfloat  hShift = 0.5;
     static GLfloat  vShift = 0;
 
-    static GLfloat x_range[2] = {-1.5, 0.5};
+    static GLfloat x_range[2] = {-1, 1};
     static GLfloat x_inc = 0.01;
     static GLfloat y_range[2] = {-1, 1};
     static GLfloat y_inc = 0.01;
@@ -51,8 +52,10 @@ namespace MSet {
 
     void Mouse(int Button, int State, int x, int y);
 
+    void reset(void);
+
     void display(void);
 
     void Timer(int);
 
-}
+}   // namespace MSet
